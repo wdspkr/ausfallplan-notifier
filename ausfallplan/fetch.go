@@ -1,4 +1,4 @@
-package main
+package ausfallplan
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func main() {
+func fetch_page() {
 	resp, err := http.Get("https://stechlinsee-grundschule.de/ausfall-plan/")
 
 	if err != nil {
@@ -25,5 +25,12 @@ func main() {
 
 	// io.Copy()
 	// bufio.NewReadWriter()
+}
 
+func load_file() []byte {
+	html, err := os.ReadFile("ausfallplan/ausfallplan.html")
+	if err != nil {
+		panic(err)
+	}
+	return html
 }
