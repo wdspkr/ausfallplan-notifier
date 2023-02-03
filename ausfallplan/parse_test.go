@@ -8,7 +8,7 @@ import (
 )
 
 func TestSimpleTable(t *testing.T) {
-	html, err := os.ReadFile("simple_ausfallplan.html")
+	html, err := os.ReadFile("simple_table.html")
 	if err != nil {
 		panic(err)
 	}
@@ -27,5 +27,14 @@ func TestSimpleTable(t *testing.T) {
 }
 
 func TestEmptyTable(t *testing.T) {
+	html, err := os.ReadFile("empty_table.html")
+	if err != nil {
+		panic(err)
+	}
+	expectedEntries := []Entry{}
 
+	entries := parse(html)
+	if !reflect.DeepEqual(entries, expectedEntries) {
+		t.Errorf("That did not work...")
+	}
 }
