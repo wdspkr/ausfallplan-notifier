@@ -1,27 +1,21 @@
 package ausfallplan
 
 import (
-	"fmt"
 	"time"
 )
 
 type Entry struct {
-	day         time.Time
-	hour        string
-	class       string
-	information string
+	Day         time.Time
+	Hour        string
+	Class       string
+	Information string
 }
 
-func GetEntriesFor() {
-	html := load_file()
+func GetEntriesFor(level string, class string) []Entry {
+	html := fetch_page()
+	// html := load_file()
 	entries := parse(html)
-	// Filter entries for class
+	filtered_entries := filter(entries, level, class)
 
-	for _, s := range entries {
-		fmt.Print(s.day)
-		fmt.Print(s.hour)
-		fmt.Print(s.class)
-		fmt.Print(s.information)
-		fmt.Print("\n")
-	}
+	return filtered_entries
 }

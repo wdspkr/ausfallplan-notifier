@@ -6,29 +6,22 @@ import (
 	"os"
 )
 
-func fetch_page() {
-	resp, err := http.Get("https://stechlinsee-grundschule.de/ausfall-plan/")
+func fetch_page() []byte {
+	resp, err := http.Get(os.Getenv("AUSFALL_URL"))
 
 	if err != nil {
 		fmt.Println("could not fetch page:", err)
 		os.Exit(1)
 	}
 
-	bs := make([]byte, 99999)
+	bs := make([]byte, 100000)
 	resp.Body.Read(bs)
 
-	fmt.Println(string(bs))
-
-	resp.Body.Read(bs)
-
-	fmt.Println(string(bs))
-
-	// io.Copy()
-	// bufio.NewReadWriter()
+	return bs
 }
 
 func load_file() []byte {
-	html, err := os.ReadFile("ausfallplan/ausfallplan.html")
+	html, err := os.ReadFile("ausfallplan.html")
 	if err != nil {
 		panic(err)
 	}

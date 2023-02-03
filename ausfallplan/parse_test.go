@@ -13,16 +13,16 @@ func TestSimpleTable(t *testing.T) {
 		panic(err)
 	}
 	expectedEntries := []Entry{
-		{day: time.Date(2023, 02, 06, 0, 0, 0, 0, time.UTC), hour: "6. Stunde", class: "JüL 3, JüL 7", information: "Englisch"},
-		{day: time.Date(2023, 02, 06, 0, 0, 0, 0, time.UTC), hour: "7./ 8. Stunde", class: "Geige"},
-		{day: time.Date(2023, 02, 07, 0, 0, 0, 0, time.UTC), hour: "7. Stunde", class: "6 a, b, c", information: "Saxophon"},
-		{day: time.Date(2023, 02, 07, 0, 0, 0, 0, time.UTC), hour: "7. Stunde", class: "4a, b", information: "Querflöte"},
+		{Day: time.Date(2023, 02, 06, 0, 0, 0, 0, time.UTC), Hour: "6. Stunde", Class: "JüL 3, JüL 7", Information: "Englisch"},
+		{Day: time.Date(2023, 02, 06, 0, 0, 0, 0, time.UTC), Hour: "7./ 8. Stunde", Class: "Geige"},
+		{Day: time.Date(2023, 02, 07, 0, 0, 0, 0, time.UTC), Hour: "7. Stunde", Class: "6 a, b, c", Information: "Saxophon"},
+		{Day: time.Date(2023, 02, 07, 0, 0, 0, 0, time.UTC), Hour: "7. Stunde", Class: "4a, b", Information: "Querflöte"},
 	}
 
 	entries := parse(html)
 
 	if !reflect.DeepEqual(entries, expectedEntries) {
-		t.Errorf("That did not work...")
+		t.Errorf("No match!\n Expected: %v\n Got: %v", expectedEntries, entries)
 	}
 }
 
@@ -35,6 +35,6 @@ func TestEmptyTable(t *testing.T) {
 
 	entries := parse(html)
 	if !reflect.DeepEqual(entries, expectedEntries) {
-		t.Errorf("That did not work...")
+		t.Errorf("No match!\n Expected: %v\n Got: %v", expectedEntries, entries)
 	}
 }

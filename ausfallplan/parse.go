@@ -14,19 +14,19 @@ func parse(html []byte) []Entry {
 
 func entries(rows [][][]byte) []Entry {
 	var lastRowDate time.Time
-	entries := make([]Entry, 0)
+	entries := []Entry{}
 	rgx, _ := regexp.Compile(`(?s)<td.*?>(.*?)</td>`)
 
 	for _, tr := range rows {
 		raw := rgx.FindAllSubmatch(tr[1], 4)
 		entry := Entry{
-			day:         dateTime(raw[0][1], &lastRowDate),
-			hour:        string(raw[1][1]),
-			class:       string(raw[2][1]),
-			information: string(raw[3][1]),
+			Day:         dateTime(raw[0][1], &lastRowDate),
+			Hour:        string(raw[1][1]),
+			Class:       string(raw[2][1]),
+			Information: string(raw[3][1]),
 		}
 
-		if entry.hour == "" {
+		if entry.Hour == "" {
 			continue
 		}
 
