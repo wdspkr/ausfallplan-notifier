@@ -9,7 +9,7 @@ func filter(entries []Entry, level string, class string) []Entry {
 	filteredEntries := []Entry{}
 
 	rgxStr := fmt.Sprint("(?i)", level, ".*", class)
-	rgx, _ := regexp.Compile(rgxStr)
+	rgx := regexp.MustCompile(rgxStr)
 
 	for _, entry := range entries {
 		if rgx.MatchString(entry.Class) {

@@ -1,23 +1,24 @@
 package ausfallplan
 
 import (
-	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"os"
 )
 
 func fetch_page() []byte {
-	resp, err := http.Get(os.Getenv("AUSFALL_URL"))
+	res, err := http.Get(os.Getenv("AUSFALL_URL"))
 
 	if err != nil {
-		fmt.Println("could not fetch page:", err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
-
-	bs := make([]byte, 100000)
-	resp.Body.Read(bs)
-
-	return bs
+	content, err := io.ReadAll(res.Body)
+	res.Body.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return content
 }
 
 func load_file() []byte {
