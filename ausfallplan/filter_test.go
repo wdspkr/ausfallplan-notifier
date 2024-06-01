@@ -20,7 +20,7 @@ func TestFilter(t *testing.T) {
 		{Day: time.Date(2023, 02, 07, 0, 0, 0, 0, time.UTC), Hour: "7. Stunde", Class: "JüL 4, 6, 3", Information: "Querflöte"},
 	}
 
-	filteredEntries := filter(entries, "Jül", "3")
+	filteredEntries := FilterEntries(entries, "Jül", "3")
 
 	if !reflect.DeepEqual(filteredEntries, expectedEntries) {
 		t.Errorf("No match!\n Expected: %v\n Got: %v", expectedEntries, filteredEntries)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -13,6 +14,11 @@ import (
 	"github.com/wdspkr/ausfallplan-notifier/ausfallplan"
 )
 
+type Subscription struct {
+	Level string `json:"level"`
+	Class string `json:"class"`
+}
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -21,28 +27,18 @@ func main() {
 
 	minioClient := initializeMinioClient()
 
-	object, err := minioClient.GetObject(context.Background(), os.Getenv("S3_BUCKET"), "config.json", minio.GetObjectOptions{})
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer object.Close()
+	subscriptions := getSubscriptions(minioClient)
 
-	// Read the object
-	config, err := io.ReadAll(object)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	entries := ausfallplan.GetAllEntries()
 
-	// Print the object
-	fmt.Println(string(config))
+	for _, subscription := range subscriptions {
+		// Filter entries
+		filteredEntries := ausfallplan.FilterEntries(entries, subscription.Level, subscription.Class)
 
-	entries := ausfallplan.GetEntriesFor(os.Getenv("LEVEL"), os.Getenv("CLASS"))
-
-	for _, s := range entries {
-		formattedDay := s.Day.Format("02.01.2006")
-		fmt.Printf("%s %s %s %s\n", formattedDay, s.Hour, s.Class, s.Information)
+		for _, s := range filteredEntries {
+			formattedDay := s.Day.Format("02.01.2006")
+			fmt.Printf("%s %s %s %s\n", formattedDay, s.Hour, s.Class, s.Information)
+		}
 	}
 }
 
@@ -62,4 +58,21 @@ func initializeMinioClient() *minio.Client {
 	}
 
 	return minioClient
+}
+
+func getSubscriptions(minioClient *minio.Client) []Subscription {
+	object, err := minioClient.GetObject(context.Background(), os.Getenv("S3_BUCKET"), "config.json", minio.GetObjectOptions{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer object.Close()
+
+	jsonConfig, err := io.ReadAll(object)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	subscriptions := []Subscription{}
+	json.Unmarshal(jsonConfig, &subscriptions)
+	return subscriptions
 }

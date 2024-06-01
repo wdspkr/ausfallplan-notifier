@@ -5,7 +5,7 @@ import (
 	"regexp"
 )
 
-func filter(entries []Entry, level string, class string) []Entry {
+func FilterEntries(entries []Entry, level string, class string) []Entry {
 	filteredEntries := []Entry{}
 
 	rgxStr := fmt.Sprint("(?i)", level, ".*", class)
