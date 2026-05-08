@@ -19,6 +19,7 @@ type capture struct {
 	contentType string
 	title       string
 	tags        []string
+	priority    []string
 }
 
 func newCaptureServer(t *testing.T, statusCode int) (*httptest.Server, *capture) {
@@ -30,6 +31,7 @@ func newCaptureServer(t *testing.T, statusCode int) (*httptest.Server, *capture)
 		cap.contentType = r.Header.Get("Content-Type")
 		cap.title = r.Header.Get("Title")
 		cap.tags = r.Header.Values("Tags")
+		cap.priority = r.Header.Values("Priority")
 		b, _ := io.ReadAll(r.Body)
 		cap.body = string(b)
 		w.WriteHeader(statusCode)
@@ -138,4 +140,49 @@ func TestNtfy_Send_DefaultServer(t *testing.T) {
 	if n.Server != "https://ntfy.sh" {
 		t.Errorf("Server = %q; want %q", n.Server, "https://ntfy.sh")
 	}
+}
+
+func TestNtfy_Send_PriorityHeader(t *testing.T) {
+	t.Run("priority=5 sets header to '5'", func(t *testing.T) {
+		srv, cap := newCaptureServer(t, http.StatusOK)
+		defer srv.Close()
+
+		n := notify.NewNtfy(srv.URL, "mytopic")
+		msg := notify.Notification{
+			Title:    "Alert",
+			Body:     "Something broke",
+			Priority: 5,
+		}
+
+		if err := n.Send(context.Background(), msg); err != nil {
+			t.Fatalf("Send returned error: %v", err)
+		}
+
+		if len(cap.priority) == 0 {
+			t.Fatal("Priority header absent; want '5'")
+		}
+		if cap.priority[0] != "5" {
+			t.Errorf("Priority header = %q; want '5'", cap.priority[0])
+		}
+	})
+
+	t.Run("priority=0 omits header", func(t *testing.T) {
+		srv, cap := newCaptureServer(t, http.StatusOK)
+		defer srv.Close()
+
+		n := notify.NewNtfy(srv.URL, "mytopic")
+		msg := notify.Notification{
+			Title:    "Normal",
+			Body:     "All good",
+			Priority: 0,
+		}
+
+		if err := n.Send(context.Background(), msg); err != nil {
+			t.Fatalf("Send returned error: %v", err)
+		}
+
+		if len(cap.priority) != 0 {
+			t.Errorf("Priority header should be absent; got %v", cap.priority)
+		}
+	})
 }

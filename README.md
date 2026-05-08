@@ -64,6 +64,19 @@ The DynamoDB integration test (`./store -run Integration`) is gated by `DDB_TEST
 
 4. Switch back to dry-run by commenting `NTFY_TOPIC` out in `.env`.
 
+### Forcing an error to test self-notify
+
+Self-notify sends an urgent push (priority 5, tag `warning`) when a structural error occurs (parse or persist failure). To trigger it locally:
+
+1. Set `SELF_NOTIFY=true` in `.env`.
+2. Set `AUSFALL_URL` to a URL that returns HTTP 200 but is not the school page — for example `https://example.com`. The parser will fail because `tablepress-1` is absent.
+3. Run:
+   ```sh
+   go run ./cmd/local check
+   ```
+   You should receive an urgent ntfy push titled `Ausfallplan-Notifier: Fehler in parse`.
+4. Reset `AUSFALL_URL` to the real school URL and remove (or comment out) `SELF_NOTIFY=true` when done.
+
 ## DynamoDB Local
 
 Runs the same Dynamo-backed pipeline that Lambda will use, without needing an AWS account.

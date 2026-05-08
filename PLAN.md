@@ -183,16 +183,16 @@ Each milestone ends in a runnable, tested checkpoint. Stop and resume freely. Ea
 **Acceptance:**
 - One manual invoke against an empty table sends notifications for all current entries; second invoke sends nothing.
 
-### M7 — Graceful errors + self-notification ⏳
+### M7 — Graceful errors + self-notification ✅
 
 **Goal:** Any unexpected failure (network, parse, DB, ntfy) ends the invocation cleanly and pings me.
 
 **Tasks (TDD):**
-- [ ] No more `log.Fatal` / `panic` in production paths; replace with `error` returns.
-- [ ] Top-level handler in `cmd/lambda` catches errors and posts to ntfy with priority `urgent` and tag `warning`, then returns the error so CloudWatch shows red.
-- [ ] Distinguish: structural parse failure (HTML changed) vs. transient network failure (don't spam — only notify on parse/persist failures, just log on transient HTTP errors with retry).
-- [ ] Lambda timeout set to 30s; ntfy/HTTP clients have explicit timeouts < that.
-- [ ] Tests for the error-notification path with `notify.Stub`.
+- [x] No more `log.Fatal` / `panic` in production paths; replace with `error` returns.
+- [x] Top-level handler in `cmd/lambda` catches errors and posts to ntfy with priority `urgent` and tag `warning`, then returns the error so CloudWatch shows red.
+- [x] Distinguish: structural parse failure (HTML changed) vs. transient network failure (don't spam — only notify on parse/persist failures, just log on transient HTTP errors with retry).
+- [x] Lambda timeout set to 30s; ntfy/HTTP clients have explicit timeouts < that.
+- [x] Tests for the error-notification path with `notify.Stub`.
 
 **Acceptance:**
 - Forcing a parse error locally triggers an "urgent" ntfy message.

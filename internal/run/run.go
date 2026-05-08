@@ -33,35 +33,49 @@ type Options struct {
 	Blacklist []string
 
 	LogWriter io.Writer // human-readable output destination (stdout in CLI)
+
+	SelfNotifyOnError bool           // when true, structural errors trigger an urgent ntfy
+	Notifier          notify.Notifier // test seam — when non-nil, used instead of constructing one
 }
 
 // Check runs one fetch → parse → diff → filter → notify → save pass.
 // On any error past the fetch, returns the error WITHOUT updating state
 // (so the next run retries).
+//
+// Structural errors (parse, store-load, store-save) trigger a self-notification
+// when opts.SelfNotifyOnError is true. Transient errors (fetch, notify send)
+// are returned silently — the next scheduled run will retry.
 func Check(ctx context.Context, opts Options) error {
 	if opts.URL == "" {
 		return fmt.Errorf("run: URL is empty")
 	}
 
-	notifier := makeNotifier(opts)
+	notifier := opts.Notifier
+	if notifier == nil {
+		notifier = makeNotifier(opts)
+	}
+
 	st, err := makeStore(ctx, opts)
 	if err != nil {
 		return fmt.Errorf("init store: %w", err)
 	}
 
+	// --- fetch (transient — no self-notify on failure) ---
 	body, err := fetch.Fetch(ctx, opts.URL)
 	if err != nil {
-		return fmt.Errorf("fetch: %w", err)
+		return fmt.Errorf("ausfallplan-notifier: fetch: %w", err)
 	}
 
+	// --- parse (structural — self-notify on failure) ---
 	next, err := ausfallplan.Parse(body)
 	if err != nil {
-		return fmt.Errorf("parse: %w", err)
+		return structuralError(ctx, opts, notifier, "parse", err)
 	}
 
+	// --- store-load (structural — self-notify on failure) ---
 	prev, err := st.Load(ctx)
 	if err != nil {
-		return fmt.Errorf("load state: %w", err)
+		return structuralError(ctx, opts, notifier, "store-load", err)
 	}
 
 	added := diff.Compute(prev, next)
@@ -72,7 +86,7 @@ func Check(ctx context.Context, opts Options) error {
 		fmt.Fprintln(opts.LogWriter, "Keine neuen Einträge.")
 		// Still update state on no-op runs so removals are tracked.
 		if err := st.Save(ctx, next); err != nil {
-			return fmt.Errorf("save state: %w", err)
+			return structuralError(ctx, opts, notifier, "store-save", err)
 		}
 		return nil
 	}
@@ -82,7 +96,8 @@ func Check(ctx context.Context, opts Options) error {
 	for _, e := range filteredEntries {
 		fmt.Fprintf(opts.LogWriter, "  %s\n", formatEntry(e))
 		if err := notifier.Send(ctx, entryNotification(e)); err != nil {
-			return fmt.Errorf("notify entry: %w", err)
+			// transient — same channel just failed; log and return, no self-notify
+			return fmt.Errorf("ausfallplan-notifier: notify: %w", err)
 		}
 	}
 
@@ -91,7 +106,8 @@ func Check(ctx context.Context, opts Options) error {
 	for _, inf := range added.Infos {
 		fmt.Fprintf(opts.LogWriter, "  %s\n", inf.Text)
 		if err := notifier.Send(ctx, infoNotification(inf)); err != nil {
-			return fmt.Errorf("notify info: %w", err)
+			// transient — same channel just failed; log and return, no self-notify
+			return fmt.Errorf("ausfallplan-notifier: notify: %w", err)
 		}
 	}
 
@@ -100,10 +116,28 @@ func Check(ctx context.Context, opts Options) error {
 	// notification view. This means a future blacklist change won't retroactively
 	// re-notify on entries that were already seen on the page.
 	if err := st.Save(ctx, next); err != nil {
-		return fmt.Errorf("save state: %w", err)
+		return structuralError(ctx, opts, notifier, "store-save", err)
 	}
 
 	return nil
+}
+
+// structuralError wraps err with stage context, optionally fires a self-notify,
+// and always returns the wrapped error to the caller.
+func structuralError(ctx context.Context, opts Options, notifier notify.Notifier, stage string, err error) error {
+	wrapped := fmt.Errorf("ausfallplan-notifier: %s: %w", stage, err)
+	if opts.SelfNotifyOnError {
+		selfNotif := notify.Notification{
+			Title:    fmt.Sprintf("Ausfallplan-Notifier: Fehler in %s", stage),
+			Body:     err.Error(),
+			Tags:     []string{"warning"},
+			Priority: 5,
+		}
+		if sendErr := notifier.Send(ctx, selfNotif); sendErr != nil {
+			fmt.Fprintf(opts.LogWriter, "self-notify failed: %v\n", sendErr)
+		}
+	}
+	return wrapped
 }
 
 // makeStore selects and initialises a Store based on opts.StoreBackend.

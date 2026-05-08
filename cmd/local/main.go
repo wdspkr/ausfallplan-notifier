@@ -93,15 +93,16 @@ func runCheck() error {
 	defer cancel()
 
 	opts := run.Options{
-		URL:          url,
-		StoreBackend: os.Getenv("STATE_BACKEND"),
-		StateFile:    os.Getenv("STATE_FILE"),
-		DDBTable:     os.Getenv("DDB_TABLE"),
-		DDBEndpoint:  os.Getenv("DDB_ENDPOINT"),
-		NtfyTopic:    os.Getenv("NTFY_TOPIC"),
-		NtfyServer:   os.Getenv("NTFY_SERVER"),
-		Blacklist:    cfg.Blacklist,
-		LogWriter:    os.Stdout,
+		URL:               url,
+		StoreBackend:      os.Getenv("STATE_BACKEND"),
+		StateFile:         os.Getenv("STATE_FILE"),
+		DDBTable:          os.Getenv("DDB_TABLE"),
+		DDBEndpoint:       os.Getenv("DDB_ENDPOINT"),
+		NtfyTopic:         os.Getenv("NTFY_TOPIC"),
+		NtfyServer:        os.Getenv("NTFY_SERVER"),
+		Blacklist:         cfg.Blacklist,
+		LogWriter:         os.Stdout,
+		SelfNotifyOnError: os.Getenv("SELF_NOTIFY") == "true",
 	}
 
 	return run.Check(ctx, opts)

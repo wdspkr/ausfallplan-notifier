@@ -8,9 +8,10 @@ import (
 
 // Notification is the payload sent to a Notifier.
 type Notification struct {
-	Title string
-	Body  string
-	Tags  []string // sent as comma-separated "Tags:" header; empty → omitted
+	Title    string
+	Body     string
+	Tags     []string // sent as comma-separated "Tags:" header; empty → omitted
+	Priority int      // 0 = default; ntfy treats 1=min, 3=default, 5=urgent
 }
 
 // Notifier is implemented by anything that can deliver a Notification.

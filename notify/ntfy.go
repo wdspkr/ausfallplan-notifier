@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -58,6 +59,9 @@ func (n *Ntfy) Send(ctx context.Context, msg Notification) error {
 	}
 	if len(msg.Tags) > 0 {
 		req.Header.Set("Tags", strings.Join(msg.Tags, ","))
+	}
+	if msg.Priority > 0 {
+		req.Header.Set("Priority", strconv.Itoa(msg.Priority))
 	}
 
 	resp, err := client.Do(req)

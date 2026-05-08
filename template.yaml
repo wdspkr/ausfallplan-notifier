@@ -44,6 +44,7 @@ Resources:
           DDB_TABLE: !Ref StateTable
           NTFY_TOPIC: !Ref NtfyTopic
           BLACKLIST: !Join [",", !Ref Blacklist]
+          SELF_NOTIFY: "true"
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref StateTable

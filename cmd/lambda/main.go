@@ -11,15 +11,16 @@ import (
 
 func handler(ctx context.Context) error {
 	opts := run.Options{
-		URL:          os.Getenv("AUSFALL_URL"),
-		StoreBackend: os.Getenv("STATE_BACKEND"),
-		StateFile:    os.Getenv("STATE_FILE"),
-		DDBTable:     os.Getenv("DDB_TABLE"),
-		DDBEndpoint:  os.Getenv("DDB_ENDPOINT"),
-		NtfyTopic:    os.Getenv("NTFY_TOPIC"),
-		NtfyServer:   os.Getenv("NTFY_SERVER"),
-		Blacklist:    parseBlacklist(os.Getenv("BLACKLIST")),
-		LogWriter:    os.Stderr, // CloudWatch captures both std streams; stderr is the convention for handler logs
+		URL:               os.Getenv("AUSFALL_URL"),
+		StoreBackend:      os.Getenv("STATE_BACKEND"),
+		StateFile:         os.Getenv("STATE_FILE"),
+		DDBTable:          os.Getenv("DDB_TABLE"),
+		DDBEndpoint:       os.Getenv("DDB_ENDPOINT"),
+		NtfyTopic:         os.Getenv("NTFY_TOPIC"),
+		NtfyServer:        os.Getenv("NTFY_SERVER"),
+		Blacklist:         parseBlacklist(os.Getenv("BLACKLIST")),
+		LogWriter:         os.Stderr, // CloudWatch captures both std streams; stderr is the convention for handler logs
+		SelfNotifyOnError: os.Getenv("SELF_NOTIFY") == "true",
 	}
 	return run.Check(ctx, opts)
 }

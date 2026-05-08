@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/wdspkr/ausfallplan-notifier/internal/run"
+	"github.com/wdspkr/ausfallplan-notifier/notify"
 )
 
 func TestCheck_HappyPath(t *testing.T) {
@@ -86,5 +87,138 @@ func TestCheck_EmptyURL(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "URL is empty") {
 		t.Errorf("expected 'URL is empty' in error, got: %v", err)
+	}
+}
+
+// TestCheck_StructuralError_SelfNotifies: Parse fails (no tablepress table in
+// HTML) → structural error → self-notify fires with Priority=5 and tag "warning".
+func TestCheck_StructuralError_SelfNotifies(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte(`<html><body>no tablepress here</body></html>`))
+	}))
+	defer srv.Close()
+
+	stateDir := t.TempDir()
+	stateFile := filepath.Join(stateDir, "state.json")
+
+	stub := &notify.Stub{}
+	var buf bytes.Buffer
+	opts := run.Options{
+		URL:               srv.URL,
+		StateFile:         stateFile,
+		LogWriter:         &buf,
+		Notifier:          stub,
+		SelfNotifyOnError: true,
+	}
+
+	err := run.Check(context.Background(), opts)
+	if err == nil {
+		t.Fatal("expected error from Check, got nil")
+	}
+	if !strings.Contains(err.Error(), "parse") {
+		t.Errorf("error should mention 'parse'; got: %v", err)
+	}
+
+	// Exactly one self-notification must have been sent.
+	if len(stub.Sent) != 1 {
+		t.Fatalf("expected 1 self-notification, got %d", len(stub.Sent))
+	}
+	n := stub.Sent[0]
+	if n.Priority != 5 {
+		t.Errorf("self-notify Priority = %d; want 5", n.Priority)
+	}
+	hasWarning := false
+	for _, tag := range n.Tags {
+		if tag == "warning" {
+			hasWarning = true
+		}
+	}
+	if !hasWarning {
+		t.Errorf("self-notify Tags = %v; want to contain 'warning'", n.Tags)
+	}
+	if !strings.Contains(n.Title, "parse") && !strings.Contains(n.Title, "Fehler") {
+		t.Errorf("self-notify Title = %q; want it to contain 'parse' or 'Fehler'", n.Title)
+	}
+
+	// No state file should have been written.
+	if _, statErr := os.Stat(stateFile); !os.IsNotExist(statErr) {
+		t.Error("state file should NOT exist after a parse error")
+	}
+}
+
+// TestCheck_TransientError_DoesNotSelfNotify: HTTP 500 → transient fetch error
+// → no self-notify.
+func TestCheck_TransientError_DoesNotSelfNotify(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+
+	stateDir := t.TempDir()
+	stateFile := filepath.Join(stateDir, "state.json")
+
+	stub := &notify.Stub{}
+	var buf bytes.Buffer
+	opts := run.Options{
+		URL:               srv.URL,
+		StateFile:         stateFile,
+		LogWriter:         &buf,
+		Notifier:          stub,
+		SelfNotifyOnError: true,
+	}
+
+	err := run.Check(context.Background(), opts)
+	if err == nil {
+		t.Fatal("expected error from Check, got nil")
+	}
+	if !strings.Contains(err.Error(), "fetch") {
+		t.Errorf("error should mention 'fetch'; got: %v", err)
+	}
+
+	// No self-notification for transient errors.
+	if len(stub.Sent) != 0 {
+		t.Errorf("expected 0 self-notifications for transient error, got %d", len(stub.Sent))
+	}
+
+	// No state file.
+	if _, statErr := os.Stat(stateFile); !os.IsNotExist(statErr) {
+		t.Error("state file should NOT exist after a fetch error")
+	}
+}
+
+// TestCheck_StructuralError_SelfNotifyOff_NoSend: same broken HTML as
+// TestCheck_StructuralError_SelfNotifies, but SelfNotifyOnError=false → no send.
+func TestCheck_StructuralError_SelfNotifyOff_NoSend(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte(`<html><body>no tablepress here</body></html>`))
+	}))
+	defer srv.Close()
+
+	stateDir := t.TempDir()
+	stateFile := filepath.Join(stateDir, "state.json")
+
+	stub := &notify.Stub{}
+	var buf bytes.Buffer
+	opts := run.Options{
+		URL:               srv.URL,
+		StateFile:         stateFile,
+		LogWriter:         &buf,
+		Notifier:          stub,
+		SelfNotifyOnError: false,
+	}
+
+	err := run.Check(context.Background(), opts)
+	if err == nil {
+		t.Fatal("expected error from Check, got nil")
+	}
+	if !strings.Contains(err.Error(), "parse") {
+		t.Errorf("error should mention 'parse'; got: %v", err)
+	}
+
+	// No self-notification when SelfNotifyOnError is false.
+	if len(stub.Sent) != 0 {
+		t.Errorf("expected 0 self-notifications when SelfNotifyOnError=false, got %d", len(stub.Sent))
 	}
 }
