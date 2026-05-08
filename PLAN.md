@@ -156,15 +156,15 @@ Each milestone ends in a runnable, tested checkpoint. Stop and resume freely. Ea
 
 **Open question:** ntfy topic name — pick something unguessable (random suffix). Will record in `.env` only.
 
-### M5 — DynamoDB-backed memory ⏳
+### M5 — DynamoDB-backed memory ✅
 
 **Goal:** Replace the file store with DynamoDB so it works from Lambda.
 
 **Tasks (TDD):**
-- [ ] `store.DynamoStore` implementing the same interface.
-- [ ] Single-item table `ausfallplan-state` (PK: `id="snapshot"`), one attribute `payload` containing the canonical JSON.
-- [ ] Local integration test against DynamoDB Local (in `docker-compose.yml`, replacing or alongside MinIO).
-- [ ] Selection of store implementation by env (`STATE_BACKEND=file|dynamo`).
+- [x] `store.DynamoStore` implementing the same interface.
+- [x] Single-item table `ausfallplan-state` (PK: `id="snapshot"`), one attribute `payload` containing the canonical JSON.
+- [x] Local integration test against DynamoDB Local (in `docker-compose.yml`, replacing or alongside MinIO).
+- [x] Selection of store implementation by env (`STATE_BACKEND=file|dynamo`).
 
 **Acceptance:**
 - `cmd/local check` works against DynamoDB Local. Snapshot survives across runs.

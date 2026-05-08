@@ -8,6 +8,9 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/wdspkr/ausfallplan-notifier/ausfallplan"
 	"github.com/wdspkr/ausfallplan-notifier/config"
 	"github.com/wdspkr/ausfallplan-notifier/diff"
@@ -82,11 +85,6 @@ func runCheck() error {
 		os.Exit(2)
 	}
 
-	stateFile := os.Getenv("STATE_FILE")
-	if stateFile == "" {
-		stateFile = "state.json"
-	}
-
 	configFile := os.Getenv("CONFIG_FILE")
 	if configFile == "" {
 		configFile = "config.json"
@@ -96,6 +94,11 @@ func runCheck() error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
+
+	st, err := makeStore(ctx)
+	if err != nil {
+		return fmt.Errorf("init store: %w", err)
+	}
 
 	body, err := fetch.Fetch(ctx, url)
 	if err != nil {
@@ -107,9 +110,7 @@ func runCheck() error {
 		return fmt.Errorf("parse: %w", err)
 	}
 
-	fileStore := store.NewFileStore(stateFile)
-
-	prev, err := fileStore.Load(ctx)
+	prev, err := st.Load(ctx)
 	if err != nil {
 		return fmt.Errorf("load state: %w", err)
 	}
@@ -126,7 +127,7 @@ func runCheck() error {
 	if len(filteredEntries) == 0 && len(added.Infos) == 0 {
 		fmt.Println("Keine neuen Einträge.")
 		// Still update state on no-op runs so removals are tracked.
-		if err := fileStore.Save(ctx, next); err != nil {
+		if err := st.Save(ctx, next); err != nil {
 			return fmt.Errorf("save state: %w", err)
 		}
 		return nil
@@ -154,11 +155,52 @@ func runCheck() error {
 	// Save the raw, unfiltered snapshot — state represents the page, not our
 	// notification view. This means a future blacklist change won't retroactively
 	// re-notify on entries that were already seen on the page.
-	if err := fileStore.Save(ctx, next); err != nil {
+	if err := st.Save(ctx, next); err != nil {
 		return fmt.Errorf("save state: %w", err)
 	}
 
 	return nil
+}
+
+// makeStore selects and initialises a Store based on the STATE_BACKEND env var.
+//
+//   - "" or "file" → FileStore backed by STATE_FILE (default "state.json").
+//   - "dynamo"     → DynamoStore backed by DDB_TABLE (default "ausfallplan-state"),
+//     optionally pointed at DDB_ENDPOINT for DynamoDB Local.
+//   - anything else → error.
+func makeStore(ctx context.Context) (store.Store, error) {
+	backend := os.Getenv("STATE_BACKEND")
+	switch backend {
+	case "", "file":
+		stateFile := os.Getenv("STATE_FILE")
+		if stateFile == "" {
+			stateFile = "state.json"
+		}
+		return store.NewFileStore(stateFile), nil
+
+	case "dynamo":
+		table := os.Getenv("DDB_TABLE")
+		if table == "" {
+			table = "ausfallplan-state"
+		}
+		endpoint := os.Getenv("DDB_ENDPOINT")
+
+		cfg, err := awsconfig.LoadDefaultConfig(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("load AWS config: %w", err)
+		}
+
+		client := dynamodb.NewFromConfig(cfg, func(o *dynamodb.Options) {
+			if endpoint != "" {
+				o.BaseEndpoint = aws.String(endpoint)
+			}
+		})
+
+		return store.NewDynamoStore(client, table), nil
+
+	default:
+		return nil, fmt.Errorf("unknown STATE_BACKEND: %q", backend)
+	}
 }
 
 // makeNotifier selects a Notifier based on environment variables.

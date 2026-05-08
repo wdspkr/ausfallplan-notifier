@@ -7,7 +7,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"sort"
 
 	"github.com/wdspkr/ausfallplan-notifier/ausfallplan"
 )
@@ -47,31 +46,7 @@ func (f *FileStore) Load(_ context.Context) (ausfallplan.Snapshot, error) {
 // JSON to f.Path atomically (via a temp file + rename).
 // File mode is 0644.
 func (f *FileStore) Save(_ context.Context, snap ausfallplan.Snapshot) error {
-	// Sort Entries by Day, Hour, Class, Information for stable output.
-	entries := make([]ausfallplan.Entry, len(snap.Entries))
-	copy(entries, snap.Entries)
-	sort.Slice(entries, func(i, j int) bool {
-		a, b := entries[i], entries[j]
-		if !a.Day.Equal(b.Day) {
-			return a.Day.Before(b.Day)
-		}
-		if a.Hour != b.Hour {
-			return a.Hour < b.Hour
-		}
-		if a.Class != b.Class {
-			return a.Class < b.Class
-		}
-		return a.Information < b.Information
-	})
-
-	// Sort Infos by Text.
-	infos := make([]ausfallplan.Info, len(snap.Infos))
-	copy(infos, snap.Infos)
-	sort.Slice(infos, func(i, j int) bool {
-		return infos[i].Text < infos[j].Text
-	})
-
-	canonical := ausfallplan.Snapshot{Entries: entries, Infos: infos}
+	canonical := canonicalize(snap)
 
 	data, err := json.MarshalIndent(canonical, "", "  ")
 	if err != nil {
