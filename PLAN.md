@@ -140,16 +140,16 @@ Each milestone ends in a runnable, tested checkpoint. Stop and resume freely. Ea
 **Acceptance:**
 - Tests pass. Manual run against current page yields plausible filtered output.
 
-### M4 — ntfy.sh notification ⏳
+### M4 — ntfy.sh notification ✅
 
 **Goal:** Push real notifications to phone for each surviving addition.
 
 **Tasks (TDD):**
-- [ ] `notify.Notifier` interface; `notify.Ntfy` impl; `notify.Stub` for tests.
-- [ ] Configurable topic via env (`NTFY_TOPIC`, optional `NTFY_SERVER` defaulting to `https://ntfy.sh`).
-- [ ] Dry-run flag for local testing.
-- [ ] Pipeline: each addition → one ntfy message; failure to notify must NOT update the snapshot (so we retry next run).
-- [ ] Tests with httptest server verifying request shape (Title, Tags, body).
+- [x] `notify.Notifier` interface; `notify.Ntfy` impl; `notify.Stub` for tests.
+- [x] Configurable topic via env (`NTFY_TOPIC`, optional `NTFY_SERVER` defaulting to `https://ntfy.sh`).
+- [x] Dry-run flag for local testing.
+- [x] Pipeline: each addition → one ntfy message; failure to notify must NOT update the snapshot (so we retry next run).
+- [x] Tests with httptest server verifying request shape (Title, Tags, body).
 
 **Acceptance:**
 - Subscribe to topic in ntfy.sh app on phone, run `cmd/local check` after a fixture mutation, receive push.

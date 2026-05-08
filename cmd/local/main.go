@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -11,6 +12,7 @@ import (
 	"github.com/wdspkr/ausfallplan-notifier/config"
 	"github.com/wdspkr/ausfallplan-notifier/diff"
 	"github.com/wdspkr/ausfallplan-notifier/fetch"
+	"github.com/wdspkr/ausfallplan-notifier/notify"
 	"github.com/wdspkr/ausfallplan-notifier/store"
 )
 
@@ -90,6 +92,8 @@ func runCheck() error {
 		configFile = "config.json"
 	}
 
+	notifier := makeNotifier()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -121,17 +125,32 @@ func runCheck() error {
 
 	if len(filteredEntries) == 0 && len(added.Infos) == 0 {
 		fmt.Println("Keine neuen Einträge.")
-	} else {
-		fmt.Printf("Neue Einträge (%d):\n", len(filteredEntries))
-		for _, e := range filteredEntries {
-			fmt.Printf("  %s\n", formatEntry(e))
+		// Still update state on no-op runs so removals are tracked.
+		if err := fileStore.Save(ctx, next); err != nil {
+			return fmt.Errorf("save state: %w", err)
 		}
-		fmt.Printf("Neue Informationen (%d):\n", len(added.Infos))
-		for _, inf := range added.Infos {
-			fmt.Printf("  %s\n", inf.Text)
+		return nil
+	}
+
+	// Print and notify for each filtered entry.
+	fmt.Printf("Neue Einträge (%d):\n", len(filteredEntries))
+	for _, e := range filteredEntries {
+		fmt.Printf("  %s\n", formatEntry(e))
+		if err := notifier.Send(ctx, entryNotification(e)); err != nil {
+			return fmt.Errorf("notify entry: %w", err)
 		}
 	}
 
+	// Print and notify for each info.
+	fmt.Printf("Neue Informationen (%d):\n", len(added.Infos))
+	for _, inf := range added.Infos {
+		fmt.Printf("  %s\n", inf.Text)
+		if err := notifier.Send(ctx, infoNotification(inf)); err != nil {
+			return fmt.Errorf("notify info: %w", err)
+		}
+	}
+
+	// Only save state after all notifications succeeded.
 	// Save the raw, unfiltered snapshot — state represents the page, not our
 	// notification view. This means a future blacklist change won't retroactively
 	// re-notify on entries that were already seen on the page.
@@ -140,6 +159,46 @@ func runCheck() error {
 	}
 
 	return nil
+}
+
+// makeNotifier selects a Notifier based on environment variables.
+// If NTFY_TOPIC is set, it returns a real ntfy.sh notifier.
+// Otherwise it returns a Logger (dry-run) and prints a warning to stderr.
+func makeNotifier() notify.Notifier {
+	topic := os.Getenv("NTFY_TOPIC")
+	if topic == "" {
+		fmt.Fprintln(os.Stderr, "warning: NTFY_TOPIC is not set — notifications are in dry-run mode (printed to stderr only)")
+		return &notify.Logger{W: os.Stderr}
+	}
+
+	server := os.Getenv("NTFY_SERVER")
+	return notify.NewNtfy(server, topic)
+}
+
+// entryNotification builds a Notification for a single Ausfallplan Entry.
+func entryNotification(e ausfallplan.Entry) notify.Notification {
+	body := fmt.Sprintf("%s · %s · %s",
+		e.Day.Format("Mon, 02.01.2006"),
+		e.Hour,
+		e.Information,
+	)
+	// Trim trailing separator when Information is empty.
+	body = strings.TrimRight(body, " ·")
+	body = strings.TrimRight(body, " ")
+	return notify.Notification{
+		Title: e.Class,
+		Body:  body,
+		Tags:  []string{"school"},
+	}
+}
+
+// infoNotification builds a Notification for a single Aktuelle-Informationen Info.
+func infoNotification(i ausfallplan.Info) notify.Notification {
+	return notify.Notification{
+		Title: "Aktuelle Information",
+		Body:  i.Text,
+		Tags:  []string{"school"},
+	}
 }
 
 // formatEntry formats an Entry consistently across subcommands.
