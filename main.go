@@ -32,12 +32,11 @@ func main() {
 	entries := ausfallplan.GetAllEntries()
 
 	for _, subscription := range subscriptions {
-		// Filter entries
 		filteredEntries := ausfallplan.FilterEntries(entries, subscription.Level, subscription.Class)
 
-		for _, s := range filteredEntries {
-			formattedDay := s.Day.Format("02.01.2006")
-			fmt.Printf("%s %s %s %s\n", formattedDay, s.Hour, s.Class, s.Information)
+		for _, entry := range filteredEntries {
+			formattedDay := entry.Day.Format("02.01.2006")
+			fmt.Printf("%s %s %s %s\n", formattedDay, entry.Hour, entry.Class, entry.Information)
 		}
 	}
 }
