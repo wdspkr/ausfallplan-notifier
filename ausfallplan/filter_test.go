@@ -16,11 +16,12 @@ func makeEntry(class string) Entry {
 }
 
 // userBlacklist is the blacklist for the user's children (3d, 6b kept; all others blacklisted).
+// Mirrors config.json. 4e is included because Stechlinsee has an unusual fifth 4th-grade group.
 var userBlacklist = []string{
 	"1a", "1b", "1c", "1d",
 	"2a", "2b", "2c", "2d",
 	"3a", "3b", "3c",
-	"4a", "4b", "4c", "4d",
+	"4a", "4b", "4c", "4d", "4e",
 	"5a", "5b", "5c", "5d",
 	"6a", "6c", "6d",
 }
@@ -49,6 +50,10 @@ func TestFilter_TableCases(t *testing.T) {
 		{"YearCarry_6acd_Dropped", "6 a, c, d", 0},  // 6a,6c,6d all blacklisted
 		{"BAlone_Kept", "b", 1},                     // no prior year, unrecognized
 		{"3aEnglisch_Kept", "3a Englisch", 1},        // extra text in fragment, unrecognized
+		{"Pure4e_Dropped", "4e", 0},                 // letter outside a-d but blacklisted
+		{"4d_4e_Dropped", "4d, 4e", 0},              // both blacklisted (Stechlinsee real case)
+		{"YearCarry_4de_Dropped", "4 d, e", 0},      // year-carry with letter outside a-d
+		{"5fAlone_Kept", "5f", 1},                   // recognized token but not in blacklist
 	}
 
 	for _, tc := range cases {

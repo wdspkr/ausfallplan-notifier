@@ -6,12 +6,15 @@ import (
 )
 
 // fragmentRe matches an anchored "year + optional-space + letter" fragment,
-// e.g. "3d", "3 D", "6 b". The year-carry logic in extractClasses relies on
-// anchored matching so that "3a Englisch" (extra text) does NOT match.
-var fragmentRe = regexp.MustCompile(`(?i)^([1-6])\s*([a-d])$`)
+// e.g. "3d", "3 D", "6 b", "4e". Letter class is broad ([a-z]) — the tokenizer
+// just identifies syntactic class tokens; the blacklist decides relevance.
+// This catches unusual letters like Stechlinsee's 4e (a fifth 4th-grade group).
+// Anchored matching keeps "3a Englisch" (extra text) from matching.
+var fragmentRe = regexp.MustCompile(`(?i)^([1-6])\s*([a-z])$`)
 
-// letterRe matches an anchored single letter a–d (used for year-carry).
-var letterRe = regexp.MustCompile(`(?i)^([a-d])$`)
+// letterRe matches an anchored single letter (used for year-carry). Same
+// reasoning as fragmentRe — broad letter class, blacklist decides relevance.
+var letterRe = regexp.MustCompile(`(?i)^([a-z])$`)
 
 // classTokens holds the result of tokenizing a Class field.
 type classTokens struct {

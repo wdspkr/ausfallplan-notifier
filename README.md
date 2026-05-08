@@ -36,6 +36,28 @@ State persists to `./state.json` (gitignored). With `NTFY_TOPIC` unset, "notific
 
 `config.json` holds the blacklist of class identifiers to drop. Anything ambiguous is kept (over-notify on doubt) — extend the blacklist incrementally as unwanted notifications arrive.
 
+### Updating the blacklist
+
+The blacklist lives in **two** places and both must be edited when adding a class:
+
+1. `config.json` — used by the local CLI.
+2. `template.yaml` → `Parameters.Blacklist.Default` — used by the deployed Lambda.
+
+Then redeploy:
+
+```sh
+make deploy
+```
+
+If `samconfig.toml` has a stored override for `Blacklist` from an earlier `--guided` run, the template default won't take effect; pass `--parameter-overrides Blacklist="..."` once or edit `samconfig.toml`.
+
+**Known classes at Stechlinsee-Grundschule (as of 2026-05-09):**
+
+- 1a–1d, 2a–2d, 3a–3d, 4a–4e, 5a–5d, 6a–6d.
+- Note the unusual **4e** (a fifth 4th-grade group). Discovered via the over-notify mechanic when an entry like `4d, 4e · Gitarre` surfaced — `4e` was outside the original `[a-d]` tokenizer range and so the row was flagged ambiguous and kept. The tokenizer now accepts any single letter; the blacklist is the sole authority on relevance.
+
+If a new class shows up later, add it to both `config.json` and `template.yaml`. If the row contained an entirely-new letter (say `4f`), the over-notify rule still surfaces it — same flow as the 4e discovery.
+
 ## Tests
 
 ```sh
