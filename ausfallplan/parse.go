@@ -5,6 +5,13 @@ import (
 	"time"
 )
 
+type Entry struct {
+	Day         time.Time
+	Hour        string
+	Class       string
+	Information string
+}
+
 func parse(html []byte) []Entry {
 	table := extractTable(html)
 	rows := splitRows(table)

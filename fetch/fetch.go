@@ -1,4 +1,4 @@
-package ausfallplan
+package fetch
 
 import (
 	"io"
@@ -19,12 +19,4 @@ func fetch_page() []byte {
 		log.Fatal(err)
 	}
 	return content
-}
-
-func load_file() []byte {
-	html, err := os.ReadFile("ausfallplan.html")
-	if err != nil {
-		panic(err)
-	}
-	return html
 }

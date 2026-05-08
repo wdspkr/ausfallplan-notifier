@@ -8,12 +8,12 @@ import (
 )
 
 func TestSimpleTable(t *testing.T) {
-	html, err := os.ReadFile("simple_table.html")
+	html, err := os.ReadFile("testdata/simple_table.html")
 	if err != nil {
 		panic(err)
 	}
 	expectedEntries := []Entry{
-		{Day: time.Date(2023, 02, 06, 0, 0, 0, 0, time.UTC), Hour: "6. Stunde", Class: "JüL 3, JüL 7", Information: "Englisch"},
+		{Day: time.Date(2023, 02, 06, 0, 0, 0, 0, time.UTC), Hour: "6. Stunde", Class: "3. Klassen", Information: "Englisch"},
 		{Day: time.Date(2023, 02, 06, 0, 0, 0, 0, time.UTC), Hour: "7./ 8. Stunde", Class: "Geige"},
 		{Day: time.Date(2023, 02, 07, 0, 0, 0, 0, time.UTC), Hour: "7. Stunde", Class: "6 a, b, c", Information: "Saxophon"},
 		{Day: time.Date(2023, 02, 07, 0, 0, 0, 0, time.UTC), Hour: "7. Stunde", Class: "4a, b", Information: "Querflöte"},
@@ -27,7 +27,7 @@ func TestSimpleTable(t *testing.T) {
 }
 
 func TestEmptyTable(t *testing.T) {
-	html, err := os.ReadFile("empty_table.html")
+	html, err := os.ReadFile("testdata/empty_table.html")
 	if err != nil {
 		panic(err)
 	}
