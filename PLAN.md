@@ -120,7 +120,7 @@ Each milestone ends in a runnable, tested checkpoint. Stop and resume freely. Ea
 **Acceptance:**
 - Running `check` twice in a row prints additions on first call (vs. empty state) and nothing on second call.
 
-### M3 — Blacklist filter ⏳
+### M3 — Blacklist filter ✅
 
 **Goal:** Drop additions that exclusively concern blacklisted classes.
 

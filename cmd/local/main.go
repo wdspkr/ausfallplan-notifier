@@ -8,6 +8,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/wdspkr/ausfallplan-notifier/ausfallplan"
+	"github.com/wdspkr/ausfallplan-notifier/config"
 	"github.com/wdspkr/ausfallplan-notifier/diff"
 	"github.com/wdspkr/ausfallplan-notifier/fetch"
 	"github.com/wdspkr/ausfallplan-notifier/store"
@@ -84,6 +85,11 @@ func runCheck() error {
 		stateFile = "state.json"
 	}
 
+	configFile := os.Getenv("CONFIG_FILE")
+	if configFile == "" {
+		configFile = "config.json"
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -106,11 +112,18 @@ func runCheck() error {
 
 	added := diff.Compute(prev, next)
 
-	if len(added.Entries) == 0 && len(added.Infos) == 0 {
+	cfg, err := config.Load(configFile)
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+
+	filteredEntries := ausfallplan.Filter(added.Entries, cfg.Blacklist)
+
+	if len(filteredEntries) == 0 && len(added.Infos) == 0 {
 		fmt.Println("Keine neuen Einträge.")
 	} else {
-		fmt.Printf("Neue Einträge (%d):\n", len(added.Entries))
-		for _, e := range added.Entries {
+		fmt.Printf("Neue Einträge (%d):\n", len(filteredEntries))
+		for _, e := range filteredEntries {
 			fmt.Printf("  %s\n", formatEntry(e))
 		}
 		fmt.Printf("Neue Informationen (%d):\n", len(added.Infos))
@@ -119,6 +132,9 @@ func runCheck() error {
 		}
 	}
 
+	// Save the raw, unfiltered snapshot — state represents the page, not our
+	// notification view. This means a future blacklist change won't retroactively
+	// re-notify on entries that were already seen on the page.
 	if err := fileStore.Save(ctx, next); err != nil {
 		return fmt.Errorf("save state: %w", err)
 	}
