@@ -90,16 +90,16 @@ Each milestone ends in a runnable, tested checkpoint. Stop and resume freely. Ea
 - `go test ./...` passes.
 - The repo builds (`go build ./...`) — though it produces no useful binary yet, since `main.go` is gone. M1 reintroduces an entry point.
 
-### M1 — Local fetch + parse, both tables ⏳
+### M1 — Local fetch + parse, both tables ✅
 
 **Goal:** Application runs locally, fetches the live page, parses both `tablepress-1` and `tablepress-2` into typed entries.
 
 **Tasks (TDD):**
-- [ ] Switch HTML parsing from regex to `goquery` (more robust against whitespace/attribute changes).
-- [ ] Add `parse_test.go` cases for `tablepress-2` ("Aktuelle Informationen") with fixture HTML (empty, single, multiple rows).
-- [ ] Extend parse to return `Snapshot{ Entries []Entry; Infos []Info }`.
-- [ ] Promote `fetch_page` to a real `Fetch(url)` returning `([]byte, error)` (no `log.Fatal`).
-- [ ] CLI command `cmd/local fetch` prints the parsed snapshot.
+- [x] Switch HTML parsing from regex to `goquery` (more robust against whitespace/attribute changes).
+- [x] Add `parse_test.go` cases for `tablepress-2` ("Aktuelle Informationen") with fixture HTML (empty, single, multiple rows).
+- [x] Extend parse to return `Snapshot{ Entries []Entry; Infos []Info }`.
+- [x] Promote `fetch_page` to a real `Fetch(url)` returning `([]byte, error)` (no `log.Fatal`).
+- [x] CLI command `cmd/local fetch` prints the parsed snapshot.
 
 **Acceptance:**
 - `go test ./...` green.

@@ -1,22 +1,37 @@
 package fetch
 
 import (
+	"context"
+	"fmt"
 	"io"
-	"log"
 	"net/http"
-	"os"
+	"time"
 )
 
-func fetch_page() []byte {
-	res, err := http.Get(os.Getenv("AUSFALL_URL"))
+var client = &http.Client{Timeout: 10 * time.Second}
 
+// Fetch issues a GET to url and returns the body bytes.
+// Returns a non-nil error on non-2xx HTTP status, network failure,
+// or context cancellation.
+func Fetch(ctx context.Context, url string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("fetch: create request: %w", err)
 	}
-	content, err := io.ReadAll(res.Body)
-	res.Body.Close()
+
+	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("fetch: %w", err)
 	}
-	return content
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("fetch: status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("fetch: read body: %w", err)
+	}
+	return body, nil
 }
