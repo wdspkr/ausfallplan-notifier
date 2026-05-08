@@ -197,19 +197,22 @@ Each milestone ends in a runnable, tested checkpoint. Stop and resume freely. Ea
 **Acceptance:**
 - Forcing a parse error locally triggers an "urgent" ntfy message.
 
-### M8 — EventBridge schedule ⏳
+### M8 — EventBridge schedule ✅
 
 **Goal:** Hands-off operation on the agreed cadence.
 
 **Tasks:**
-- [ ] Two EventBridge Scheduler schedules in Europe/Berlin:
-  - `morning`: cron `0/10 6-8 ? * MON-FRI *` filtered to 06:50–08:00 — actually expressed as two schedules or a `cron(50,0/10 6-7 ...)` style. Final cron decided during implementation.
-  - `evening`: cron `0/30 18-21 ? * SUN-THU *`.
-- [ ] Both target the same Lambda alias.
-- [ ] `make deploy` provisions them.
+- [x] EventBridge Scheduler schedules in Europe/Berlin (5 total, expressed as separate `AWS::Scheduler::Schedule` resources — no single cron expression covers the morning window cleanly):
+  - `ausfallplan-morning-0650`: `cron(50 6 ? * MON-FRI *)`
+  - `ausfallplan-morning-07xx`: `cron(0,10,20,30,40,50 7 ? * MON-FRI *)`
+  - `ausfallplan-morning-0800`: `cron(0 8 ? * MON-FRI *)`
+  - `ausfallplan-evening-18to20`: `cron(0,30 18-20 ? * SUN-THU *)`
+  - `ausfallplan-evening-2100`: `cron(0 21 ? * SUN-THU *)`
+- [x] All target `CheckFunction` directly (no alias — unqualified ARN points at $LATEST, which is fine for a single-environment personal tool; an alias would just add versioning ceremony for no current benefit).
+- [x] `make deploy` provisions them; the SchedulerRole grants `lambda:InvokeFunction`.
 
 **Acceptance:**
-- CloudWatch shows scheduled invocations at the expected times for at least one full cycle.
+- After `make deploy`, CloudWatch Logs (`/aws/lambda/ausfallplan-check`) shows scheduled invocations at the expected times for at least one full cycle.
 
 ## Working agreements
 

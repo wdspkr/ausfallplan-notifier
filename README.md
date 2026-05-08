@@ -197,4 +197,20 @@ aws lambda invoke --function-name ausfallplan-check /dev/stdout
 
 The first invoke against an empty table will send notifications for all current entries; the second invoke sends nothing (idempotent).
 
-> **Note:** Scheduling (EventBridge cron) is not yet wired — the function is invoke-on-demand only. Scheduling arrives in M8.
+### Schedule
+
+After `make deploy`, EventBridge Scheduler fires the function automatically (Europe/Berlin):
+
+| Schedule | When | Cron |
+| --- | --- | --- |
+| `ausfallplan-morning-0650` | 06:50 Mon–Fri | `cron(50 6 ? * MON-FRI *)` |
+| `ausfallplan-morning-07xx` | 07:00–07:50 every 10 min, Mon–Fri | `cron(0,10,20,30,40,50 7 ? * MON-FRI *)` |
+| `ausfallplan-morning-0800` | 08:00 Mon–Fri | `cron(0 8 ? * MON-FRI *)` |
+| `ausfallplan-evening-18to20` | 18:00–20:30 every 30 min, Sun–Thu | `cron(0,30 18-20 ? * SUN-THU *)` |
+| `ausfallplan-evening-2100` | 21:00 Sun–Thu | `cron(0 21 ? * SUN-THU *)` |
+
+Total: ~68 invocations/week, well within Lambda's 1M/month free tier.
+
+To pause scheduling without tearing down the stack, disable the schedules in the AWS Scheduler console (Scheduler → Schedules → select → Disable). Re-running `make deploy` will re-enable them, since the SAM template doesn't pin a `State` (default is `ENABLED`). To pin disabled in code, add `State: DISABLED` to each `AWS::Scheduler::Schedule` in `template.yaml`.
+
+To verify after deploy: open CloudWatch Logs → `/aws/lambda/ausfallplan-check` and watch a schedule fire (e.g. wait for the next 10-minute mark during a morning window). Each fire produces one log group entry.

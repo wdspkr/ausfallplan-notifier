@@ -49,6 +49,90 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref StateTable
 
+  # IAM role assumed by EventBridge Scheduler to invoke the Lambda.
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeCheckFunction
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt CheckFunction.Arn
+
+  # Mornings, Mon–Fri, Europe/Berlin: 06:50, 07:00–07:50 every 10 min, 08:00.
+  # Three schedules because the minute pattern differs per hour (no single
+  # cron expression covers 06:50 + 07:00..07:50 + 08:00 cleanly).
+  MorningSchedule0650:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: ausfallplan-morning-0650
+      ScheduleExpression: cron(50 6 ? * MON-FRI *)
+      ScheduleExpressionTimezone: Europe/Berlin
+      FlexibleTimeWindow:
+        Mode: 'OFF'
+      Target:
+        Arn: !GetAtt CheckFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+
+  MorningSchedule07xx:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: ausfallplan-morning-07xx
+      ScheduleExpression: cron(0,10,20,30,40,50 7 ? * MON-FRI *)
+      ScheduleExpressionTimezone: Europe/Berlin
+      FlexibleTimeWindow:
+        Mode: 'OFF'
+      Target:
+        Arn: !GetAtt CheckFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+
+  MorningSchedule0800:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: ausfallplan-morning-0800
+      ScheduleExpression: cron(0 8 ? * MON-FRI *)
+      ScheduleExpressionTimezone: Europe/Berlin
+      FlexibleTimeWindow:
+        Mode: 'OFF'
+      Target:
+        Arn: !GetAtt CheckFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+
+  # Evenings, Sun–Thu, Europe/Berlin: 18:00–20:30 every 30 min, plus 21:00.
+  EveningSchedule18to20:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: ausfallplan-evening-18to20
+      ScheduleExpression: cron(0,30 18-20 ? * SUN-THU *)
+      ScheduleExpressionTimezone: Europe/Berlin
+      FlexibleTimeWindow:
+        Mode: 'OFF'
+      Target:
+        Arn: !GetAtt CheckFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+
+  EveningSchedule2100:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: ausfallplan-evening-2100
+      ScheduleExpression: cron(0 21 ? * SUN-THU *)
+      ScheduleExpressionTimezone: Europe/Berlin
+      FlexibleTimeWindow:
+        Mode: 'OFF'
+      Target:
+        Arn: !GetAtt CheckFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+
 Outputs:
   CheckFunctionArn:
     Value: !GetAtt CheckFunction.Arn
