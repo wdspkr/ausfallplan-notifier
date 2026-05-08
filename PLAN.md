@@ -105,17 +105,17 @@ Each milestone ends in a runnable, tested checkpoint. Stop and resume freely. Ea
 - `go test ./...` green.
 - `go run ./cmd/local fetch` against the live URL prints both Ausfall entries and Aktuelle Informationen.
 
-### M2 — Local diffing against last snapshot ⏳
+### M2 — Local diffing against last snapshot ✅
 
 **Goal:** Detect added entries vs. the previous run, using a local file as memory.
 
 **Tasks (TDD):**
-- [ ] `store.Store` interface: `Load() (Snapshot, error)`, `Save(Snapshot) error`.
-- [ ] `store.FileStore` writes `state.json` (gitignored).
-- [ ] Canonical serialization for stable equality (sort entries, normalize whitespace).
-- [ ] `diff.Added(prev, next Snapshot) []Change` — returns added Ausfall entries and added Infos.
-- [ ] Tests: identical snapshots → no changes; new entry → returned; removed entry → ignored; reordered → no change.
-- [ ] CLI command `cmd/local check` runs the full pipeline and prints additions.
+- [x] `store.Store` interface: `Load() (Snapshot, error)`, `Save(Snapshot) error`.
+- [x] `store.FileStore` writes `state.json` (gitignored).
+- [x] Canonical serialization for stable equality (sort entries, normalize whitespace).
+- [x] `diff.Added(prev, next Snapshot) []Change` — returns added Ausfall entries and added Infos.
+- [x] Tests: identical snapshots → no changes; new entry → returned; removed entry → ignored; reordered → no change.
+- [x] CLI command `cmd/local check` runs the full pipeline and prints additions.
 
 **Acceptance:**
 - Running `check` twice in a row prints additions on first call (vs. empty state) and nothing on second call.
