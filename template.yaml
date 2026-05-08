@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Ausfallplan Notifier — polls the school page and pushes to ntfy.sh.
+
+Parameters:
+  AusfallURL:
+    Type: String
+    Default: https://stechlinsee-grundschule.de/ausfall-plan/
+  NtfyTopic:
+    Type: String
+    NoEcho: true
+    Description: ntfy.sh topic name (kept out of source control).
+  Blacklist:
+    Type: CommaDelimitedList
+    Default: 1a,1b,1c,1d,2a,2b,2c,2d,3a,3b,3c,4a,4b,4c,4d,5a,5b,5c,5d,6a,6c,6d
+
+Resources:
+  StateTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ausfallplan-state
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+
+  CheckFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ausfallplan-check
+      Runtime: provided.al2023
+      Handler: bootstrap
+      Architectures: [arm64]
+      MemorySize: 128
+      Timeout: 30
+      CodeUri: build/
+      Environment:
+        Variables:
+          AUSFALL_URL: !Ref AusfallURL
+          STATE_BACKEND: dynamo
+          DDB_TABLE: !Ref StateTable
+          NTFY_TOPIC: !Ref NtfyTopic
+          BLACKLIST: !Join [",", !Ref Blacklist]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref StateTable
+
+Outputs:
+  CheckFunctionArn:
+    Value: !GetAtt CheckFunction.Arn
+  CheckFunctionName:
+    Value: !Ref CheckFunction

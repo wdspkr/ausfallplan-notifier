@@ -117,3 +117,49 @@ Runs the same Dynamo-backed pipeline that Lambda will use, without needing an AW
    ```
 
 To go back to the file store, comment `STATE_BACKEND` out (or set it to `file`).
+
+## Deploy to AWS
+
+The Lambda function runs the same pipeline as `cmd/local check` but uses DynamoDB for state and reads all configuration from environment variables.
+
+**Prerequisites**
+
+- AWS CLI configured (`aws configure` or an IAM role/profile in `~/.aws/`).
+- AWS SAM CLI installed ([installation guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)).
+
+**First deploy (guided)**
+
+```sh
+make build                        # cross-compiles arm64 Linux binary to build/bootstrap
+sam deploy --guided               # walks through stack name, region, parameter values
+```
+
+When `--guided` prompts:
+- **Stack name**: e.g. `ausfallplan-notifier`
+- **AWS Region**: e.g. `eu-central-1`
+- **AusfallURL**: accept the default or paste the school URL
+- **NtfyTopic**: your unguessable ntfy.sh topic name (value is not echoed)
+- **Blacklist**: accept the default to keep only `3d` and `6b` notifications
+- Save the configuration to `samconfig.toml` when asked — subsequent deploys pick it up automatically.
+
+**Subsequent deploys**
+
+```sh
+make deploy    # builds + sam deploy (reads samconfig.toml)
+```
+
+**Manual invocation**
+
+```sh
+make invoke    # fires one execution; output goes to stdout
+```
+
+Or with the AWS CLI directly:
+
+```sh
+aws lambda invoke --function-name ausfallplan-check /dev/stdout
+```
+
+The first invoke against an empty table will send notifications for all current entries; the second invoke sends nothing (idempotent).
+
+> **Note:** Scheduling (EventBridge cron) is not yet wired — the function is invoke-on-demand only. Scheduling arrives in M8.

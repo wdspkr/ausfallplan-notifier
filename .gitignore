@@ -1,3 +1,6 @@
 .env
 state.json
+.aws-sam/
+build/
+samconfig.toml
 

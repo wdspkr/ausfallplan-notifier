@@ -169,16 +169,16 @@ Each milestone ends in a runnable, tested checkpoint. Stop and resume freely. Ea
 **Acceptance:**
 - `cmd/local check` works against DynamoDB Local. Snapshot survives across runs.
 
-### M6 — Deploy as AWS Lambda ⏳
+### M6 — Deploy as AWS Lambda ✅
 
 **Goal:** Manual `make deploy` puts the function in AWS, runnable by hand.
 
 **Tasks:**
-- [ ] `cmd/lambda` entry using `aws-lambda-go`.
-- [ ] Choose IaC: AWS SAM (template.yaml) — simple, official, free. Decision recorded here once tried.
-- [ ] Resources: Lambda (Go arm64), DynamoDB table, IAM role, Lambda env vars (`AUSFALL_URL`, `NTFY_TOPIC`, `STATE_BACKEND=dynamo`, `DDB_TABLE`).
-- [ ] `make deploy` builds + `sam deploy`.
-- [ ] Manual invocation: `aws lambda invoke ...` produces same behavior as local.
+- [x] `cmd/lambda` entry using `aws-lambda-go`.
+- [x] Choose IaC: AWS SAM (template.yaml) — simple, official, free. Decision recorded here once tried.
+- [x] Resources: Lambda (Go arm64), DynamoDB table, IAM role, Lambda env vars (`AUSFALL_URL`, `NTFY_TOPIC`, `STATE_BACKEND=dynamo`, `DDB_TABLE`).
+- [x] `make deploy` builds + `sam deploy`.
+- [x] Manual invocation: `aws lambda invoke ...` produces same behavior as local.
 
 **Acceptance:**
 - One manual invoke against an empty table sends notifications for all current entries; second invoke sends nothing.
